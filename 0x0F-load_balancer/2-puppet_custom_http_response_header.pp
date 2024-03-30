@@ -1,29 +1,18 @@
-# Custom HTTP header in a nginx server
+# Automate the task of creating a custom HTTP header response with Puppet.
+# The name of the custom HTTP header must be X-Served-By.
+# The value of the custom HTTP header must be the hostname of the server Nginx is running on.
 
-# update ubuntu server
-exec { 'update server':
-  command  => 'apt-get update',
-  user     => 'root',
-  provider => 'shell',
+exec {'update':
+  command => '/usr/bin/apt-get update',
 }
-->
-# install nginx web server on server
-package { 'nginx':
-  ensure   => present,
-  provider => 'apt'
-}
-->
-# custom Nginx response header (X-Served-By: hostname)
-file_line { 'add HTTP header':
+-> package {'nginx':
   ensure => 'present',
-  path   => '/etc/nginx/sites-available/default',
-  after  => 'listen 80 default_server;',
-  line   => 'add_header X-Served-By $hostname;'
 }
-->
-# start service
-service { 'nginx':
-  ensure  => 'running',
-  enable  => true,
-  require => Package['nginx']
+-> file_line { 'http_header':
+  path  => '/etc/nginx/nginx.conf',
+  line  => "http {\n\tadd_header X-Served-By \"${hostname}\";",
+  match => 'http {',
+}
+-> exec {'start':
+  command => '/usr/sbin/service nginx start',
 }
